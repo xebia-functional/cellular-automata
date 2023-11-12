@@ -6,11 +6,17 @@ Herein is a simulator for
 written in [Rust](https://www.rust-lang.org/) using the
 [Bevy](https://bevyengine.org/) game engine.
 
-The simulator begins paused. Press the space bar to unpause; when the simulator
-is running, press the space bar to pause. At any time, type a new rule,
-specified as a [Wolfram&#32;code](https://en.wikipedia.org/wiki/Wolfram_code) in
-`[0,255]`, to altar the evolution of the automaton. Hold the right shift key to
-display the frames per second (FPS).
+The simulator begins paused, using a random seed and rule (unless overridden
+with command line options).
+
+* Press the space bar to unpause; when the simulator is running, press the space
+  bar to pause.
+* When paused, click any cell in the bottom row to toggle its state, i.e.,
+  alive -> dead, dead -> alive.
+* At any time, type a new rule, specified as a
+  [Wolfram&#32;code](https://en.wikipedia.org/wiki/Wolfram_code) in
+  `[0,255]`, to altar the evolution of the automaton.
+* Hold the right shift key to display the frames per second (FPS).
 
 To run the WASM build on GitHub Pages, go
 [here](https://47degrees.github.io/cellular-automata).
