@@ -28,6 +28,8 @@ use crate::automata::{
 	AUTOMATON_HISTORY, AUTOMATON_LENGTH, AutomatonRule,
 	History
 };
+#[cfg(doc)]
+use crate::automata::Automaton;
 
 ////////////////////////////////////////////////////////////////////////////////
 //                                  Plugins.                                  //
@@ -388,9 +390,10 @@ fn build_ui(history: Res<History>, mut commands: Commands)
 				.with_children(|builder| {
 					builder.spawn(
 						TextBundle::from_section(
-							"Press [space] to resume",
+							"[space] to resume/pause, [right shift] to \
+								show FPS, or type a new rule",
 							TextStyle {
-								font_size: 36.0,
+								font_size: 28.0,
 								color: LABEL_COLOR,
 								..default()
 							}
@@ -781,8 +784,7 @@ impl ToDigit for KeyCode
 //                                 Constants.                                 //
 ////////////////////////////////////////////////////////////////////////////////
 
-/// The heartbeat for an [evolution&#32;system](evolve) in the
-/// [running](RunState::Running)&#32;[state](RunState).
+/// The heartbeat for a running [evolution&#32;system](evolve).
 const HEARTBEAT: Duration = Duration::from_millis(250);
 
 /// How long to delay between digit submissions before accepting the input so

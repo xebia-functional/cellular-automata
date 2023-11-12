@@ -1,4 +1,6 @@
-use bevy::app::App;
+use bevy::prelude::App;
+#[cfg(doc)]
+use bevy::prelude::Resource;
 use clap::Parser;
 use rand::random;
 
@@ -11,6 +13,9 @@ use crate::ecs::AutomataPlugin;
 mod automata;
 mod ecs;
 
+/// The entry point for the whole application. Parse the
+/// [command&#32;line&#32;arguments](Arguments), attach them to the [App] as
+/// [resources](Resource), then hand control over to Bevy.
 fn main()
 {
 	let args = Arguments::parse();
@@ -43,11 +48,12 @@ fn main()
 #[derive(Parser, Debug)]
 struct Arguments
 {
-	/// The [rule](AutomatonRule].
+	/// The [rule](AutomatonRule), specified as a Wolfram code in `[0,255]`.
 	#[arg(short, long)]
 	rule: Option<u8>,
 
-	/// The initial [seed](Automaton).
+	/// The [seed](Automaton), specified as a `u64` that represents the state of
+	/// the initial generation.
 	#[arg(short, long)]
 	seed: Option<u64>
 }
