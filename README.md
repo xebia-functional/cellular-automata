@@ -12,15 +12,20 @@ specified as a [Wolfram&#32;code](https://en.wikipedia.org/wiki/Wolfram_code) in
 `[0,255]`, to altar the evolution of the automaton. Hold the right shift key to
 display the frames per second (FPS).
 
+To run the WASM build on GitHub Pages, go
+[here](https://47degrees.github.io/cellular-automata).
+
 Building
 --------
 
 ```shell
-$ cargo build
+$ cargo build --release
 ```
 
 Running
 -------
+
+To run natively:
 
 ```shell
 $ cargo run
