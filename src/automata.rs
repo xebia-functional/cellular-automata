@@ -1,4 +1,3 @@
-use std::borrow::Cow;
 use std::fmt::{Display, Formatter};
 use std::fmt;
 use std::ops::{Index, IndexMut};
@@ -102,7 +101,8 @@ impl Display for AutomatonRule
 /// [Copy].
 ///
 /// [1-dimensional&#32;cellular&#32;automaton]: https://en.wikipedia.org/wiki/Elementary_cellular_automaton
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug)]
+#[cfg_attr(test, derive(PartialEq, Eq))]
 pub struct Automaton<const K: usize = AUTOMATON_LENGTH>([bool; K]);
 
 impl<const K: usize> Automaton<K>
@@ -162,10 +162,11 @@ impl<const K: usize> Default for Automaton<K>
 
 impl<const K: usize> From<u64> for Automaton<K>
 {
-	/// Initialize an [automaton](Automaton) by treating the specified `u32` as
-	/// a bit vector of up to 32 bits.
+	/// Initialize an [automaton](Automaton) by treating the specified `u64` as
+	/// a bit vector of up to 64 bits. Ignore high bits beyond index `K`.
 	fn from(value: u64) -> Self
 	{
+		assert!(K <= 0u64.count_zeros() as usize);
 		let mut next = [false; K];
 		for i in 0 ..= K - 1
 		{
@@ -212,7 +213,7 @@ impl<const K: usize> IndexMut<usize> for Automaton<K>
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-//                                   Grids.                                   //
+//                                 Histories.                                 //
 ////////////////////////////////////////////////////////////////////////////////
 
 /// The last `N` generations of a [cellular&#32;automaton](Automaton). Each
@@ -242,13 +243,9 @@ impl<const K: usize, const N: usize> History<K, N>
 	/// represents the newest generation. If the [history](History) is empty,
 	/// then answer a [new](Cow::Owned)
 	/// [default](Default::default)&#32;[automaton](Automaton).
-	pub fn newest(&self) -> Cow<Automaton<K>>
+	pub fn newest(&self) -> &Automaton<K>
 	{
-		match self.0.back()
-		{
-			Some(automaton) => Cow::Borrowed(automaton),
-			None => Cow::Owned(Automaton::default())
-		}
+		self.0.back().unwrap()
 	}
 
 	/// Answer a [reference](Cow::Borrowed) to the [automaton](Automaton) that
@@ -256,13 +253,9 @@ impl<const K: usize, const N: usize> History<K, N>
 	/// then answer a [new](Cow::Owned)
 	/// [default](Default::default)&#32;[automaton](Automaton).
 	#[allow(dead_code)]
-	pub fn oldest(&self) -> Cow<Automaton<K>>
+	pub fn oldest(&self) -> &Automaton<K>
 	{
-		match self.0.front()
-		{
-			Some(automaton) => Cow::Borrowed(automaton),
-			None => Cow::Owned(Automaton::default())
-		}
+		self.0.front().unwrap()
 	}
 
 	/// Replace the [newest](Self::newest)&#32;[automaton](Automaton) with the

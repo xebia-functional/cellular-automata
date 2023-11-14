@@ -658,7 +658,7 @@ fn maybe_change_rule(
 /// [history](History).
 fn evolve(
 	time: Res<Time>,
-	rule: ResMut<AutomatonRule>,
+	rule: Res<AutomatonRule>,
 	mut timer: ResMut<EvolutionTimer>,
 	mut history: ResMut<History>,
 	mut cells: Query<(&CellPosition, &mut BackgroundColor)>
