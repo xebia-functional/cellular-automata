@@ -267,17 +267,21 @@ impl<const K: usize, const N: usize> Index<CellPosition> for History<K, N>
 {
 	type Output = bool;
 
+	/// Visually, treat the automaton as though its `0` index occurs at the
+	/// right edge.
 	fn index(&self, index: CellPosition) -> &Self::Output
 	{
-		&self[index.row][index.column]
+		&self[index.row][K - index.column - 1]
 	}
 }
 
 impl<const K: usize, const N: usize> IndexMut<CellPosition> for History<K, N>
 {
+	/// Visually, treat the automaton as though its `0` index occurs at the
+	/// right edge.
 	fn index_mut(&mut self, index: CellPosition) -> &mut Self::Output
 	{
-		&mut self[index.row][index.column]
+		&mut self[index.row][K - index.column - 1]
 	}
 }
 
