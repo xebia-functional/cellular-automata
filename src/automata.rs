@@ -231,27 +231,25 @@ impl<const K: usize, const N: usize> History<K, N>
 	/// Construct an empty [History].
 	pub fn new() -> Self
 	{
-		let mut history = Self(ConstGenericRingBuffer::new());
+		let mut ring = ConstGenericRingBuffer::new();
 		for _ in 0 .. N
 		{
-			history.0.push(Automaton::default());
+			ring.push(Automaton::default());
 		}
-		history
+		assert!(ring.is_full());
+		Self(ring)
 	}
 
-	/// Answer a [reference](Cow::Borrowed) to the [automaton](Automaton) that
-	/// represents the newest generation. If the [history](History) is empty,
-	/// then answer a [new](Cow::Owned)
+	/// Answer a reference to the [automaton](Automaton) that represents the
+	/// newest generation.
 	/// [default](Default::default)&#32;[automaton](Automaton).
 	pub fn newest(&self) -> &Automaton<K>
 	{
 		self.0.back().unwrap()
 	}
 
-	/// Answer a [reference](Cow::Borrowed) to the [automaton](Automaton) that
-	/// represents the oldest generation. If the [history](History) is empty,
-	/// then answer a [new](Cow::Owned)
-	/// [default](Default::default)&#32;[automaton](Automaton).
+	/// Answer a reference to the [automaton](Automaton) that represents the
+	/// oldest generation.
 	#[allow(dead_code)]
 	pub fn oldest(&self) -> &Automaton<K>
 	{

@@ -1,7 +1,6 @@
 use bevy::prelude::App;
 #[cfg(doc)]
 use bevy::prelude::Resource;
-use clap::Parser;
 use rand::random;
 
 use crate::automata::{
@@ -18,42 +17,70 @@ mod ecs;
 /// [resources](Resource), then hand control over to Bevy.
 fn main()
 {
-	let args = Arguments::parse();
-	let rule = match args.rule
-	{
-		Some(rule) => AutomatonRule::from(rule),
-		None => random::<u8>().into()
-	};
-	let seed = match args.seed
-	{
-		Some(seed) => Automaton::<AUTOMATON_LENGTH>::from(seed),
-		None => random::<u64>().into()
-	};
-	println!("seed = {}", seed);
-	println!("rule = {}", rule);
+	let args = arguments().unwrap_or(Arguments::default());
+	let rule = args.rule
+		.and_then(|rule| Some(AutomatonRule::from(rule)))
+		.unwrap_or_else(|| random::<u8>().into());
+	let seed = args.seed
+		.and_then(|seed| Some(Automaton::<AUTOMATON_LENGTH>::from(seed)))
+		.unwrap_or_else(|| random::<u64>().into());
 	App::new()
 		.insert_resource(
 			History::<AUTOMATON_LENGTH, AUTOMATON_HISTORY>::from(seed)
 		)
 		.insert_resource(rule)
 		.add_plugins(AutomataPlugin)
-		.run()
+		.run();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-//                          Command-line arguments.                           //
+//                             Program arguments.                             //
 ////////////////////////////////////////////////////////////////////////////////
 
-/// The command line arguments.
-#[derive(Parser, Debug)]
+#[cfg(not(target_family = "wasm"))]
+use clap::Parser;
+
+/// Fun with cellular automata! Set the first generation with a known seed
+/// and/or rule, or let the program choose randomly. Watch the automaton evolve,
+/// and influence its evolution with the keyboard and mouse.
+#[derive(Debug, Default)]
+#[cfg_attr(not(target_family = "wasm"), derive(Parser))]
 struct Arguments
 {
-	/// The [rule](AutomatonRule), specified as a Wolfram code in `[0,255]`.
-	#[arg(short, long)]
+	/// The rule, specified as a Wolfram code between 0 and 255, inclusive. If
+	/// unspecified, the rule will be chosen randomly.
+	#[cfg_attr(not(target_family = "wasm"), arg(short, long))]
 	rule: Option<u8>,
 
-	/// The [seed](Automaton), specified as a `u64` that represents the state of
-	/// the initial generation.
-	#[arg(short, long)]
+	/// The first generation, specified as a 64-bit integer that represents the
+	/// complete population. Lower numbered bits correspond to cells on the
+	/// right of the visualization. If unspecified, the first generation will be
+	/// chosen randomly.
+	#[cfg_attr(not(target_family = "wasm"), arg(short, long))]
 	seed: Option<u64>
+}
+
+////////////////////////////////////////////////////////////////////////////////
+//                         Reading program arguments.                         //
+////////////////////////////////////////////////////////////////////////////////
+
+/// Read the program [arguments](Arguments) from the command line. Available for
+/// native builds only.
+#[cfg(not(target_family = "wasm"))]
+fn arguments() -> Option<Arguments>
+{
+	Some(Arguments::parse())
+}
+
+/// Read the program [arguments](Arguments) from the search parameters within
+/// the query string. Available for WASM builds only.
+#[cfg(target_family = "wasm")]
+fn arguments() -> Option<Arguments>
+{
+	let href = web_sys::window()?.location().href().ok()?;
+	let url = web_sys::Url::new(&href).ok()?;
+	let params = url.search_params();
+	let rule = params.get("rule").and_then(|rule| rule.parse().ok());
+	let seed = params.get("seed").and_then(|seed| seed.parse().ok());
+	Some(Arguments { rule, seed })
 }

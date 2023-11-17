@@ -1263,6 +1263,7 @@ dependencies = [
  "clap",
  "rand",
  "ringbuffer",
+ "web-sys",
 ]
 
 [[package]]

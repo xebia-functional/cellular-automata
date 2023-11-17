@@ -49,13 +49,15 @@ impl Plugin for AutomataPlugin
 			.expect("History resource to be inserted already");
 		let rule = app.world.get_resource::<AutomatonRule>()
 			.expect("AutomatonRule resource to be inserted already");
+		let mut window = Window {
+			resolution: [1024.0, 768.0].into(),
+			title: rule.to_string(),
+			..default()
+		};
+		set_title(&mut window, *rule);
 		app
 			.add_plugins(DefaultPlugins.set(WindowPlugin {
-				primary_window: Some(Window {
-					resolution: [1024.0, 768.0].into(),
-					title: format!("Cellular Automata: {}", rule),
-					..default()
-				}),
+				primary_window: Some(window),
 				..default()
 			}))
 			.add_plugins(FrameTimeDiagnosticsPlugin)
@@ -66,7 +68,7 @@ impl Plugin for AutomataPlugin
 			.add_systems(Update, maybe_toggle_instructions)
 			.add_systems(Update, accept_digit)
 			.add_systems(Update, maybe_show_fps)
-			.add_systems(Update, handle_mouse)
+			.add_systems(Update, maybe_toggle_cells)
 			.add_systems(Update, update_next_rule)
 			.add_systems(Update, maybe_change_rule)
 			.add_systems(Update, evolve)
@@ -140,9 +142,9 @@ struct AutomatonRuleBuilder
 {
 	/// The string buffer for constructing the next [rule](AutomatonRule) from
 	/// user input. Transitions from [None] to [Some] when the first digit is
-	/// submitted. Transitions from [Some] to [None] when either (1) a third
-	/// digit is entered, (2) the [timer](Timer) expires, or (3) an invalid
-	/// [rule](AutomatonRule) is detected.
+	/// submitted. Transitions from [Some] to [None] when either (1) the
+	/// [timer](Timer) expires or (2) an invalid [rule](AutomatonRule) is
+	/// detected.
 	builder: Option<String>,
 
 	/// The [timer](Timer) that controls user entry of the digits of the next
@@ -194,16 +196,10 @@ impl AutomatonRuleBuilder
 		}
 	}
 
-	/// Determine whether any input is currently buffered.
-	fn has_input(&self) -> bool
+	/// Answer the buffered input, if any.
+	fn buffered_input(&self) -> Option<&str>
 	{
-		self.builder.is_some()
-	}
-
-	/// Answer the currently buffered input.
-	fn buffered_input(&self) -> Option<String>
-	{
-		self.builder.clone()
+		self.builder.as_deref()
 	}
 
 	/// Attempt to decode a [rule](AutomatonRule) from the input supplied thus
@@ -238,10 +234,13 @@ impl AutomatonRuleBuilder
 #[derive(Copy, Clone, Debug, Component)]
 struct CellPosition
 {
-	/// The row coordinate for this cell.
+	/// The row coordinate for this cell, advancing from the
+	/// [oldest](History::oldest) generation to the [newest](History::newest)
+	/// generation.
 	row: usize,
 
-	/// The column coordinate for this cell.
+	/// The column coordinate for this cell, advancing from left to right. Note
+	/// that this is _against_ the natural order of an [automaton](Automaton).
 	column: usize
 }
 
@@ -292,6 +291,15 @@ impl<const K: usize, const N: usize> IndexMut<CellPosition> for History<K, N>
 #[derive(Component)]
 struct Instructions;
 
+/// The overlay that displays the partial next [rule](AutomatonRule), assuming
+/// that the user is actively entering a new rule.
+#[derive(Component)]
+struct NextRule;
+
+/// The label that displays the partial next rule.
+#[derive(Component)]
+struct NextRuleLabel;
+
 /// The overlay that shows the instantaneous frames per second (FPS). This is a
 /// debugging feature, available when the user is holding down the right shift
 /// key.
@@ -302,15 +310,6 @@ struct Fps;
 /// within a simple overlay, marked by [Fps].
 #[derive(Component)]
 struct FpsLabel;
-
-/// The overlay that displays the partial next [rule](AutomatonRule), assuming
-/// that the user is actively entering a new rule.
-#[derive(Component)]
-struct NextRule;
-
-/// The label that displays the partial next rule.
-#[derive(Component)]
-struct NextRuleLabel;
 
 ////////////////////////////////////////////////////////////////////////////////
 //                              Startup systems.                              //
@@ -323,185 +322,29 @@ fn add_camera(mut commands: Commands)
 	commands.spawn(Camera2dBundle::default());
 }
 
-/// Add the [history](History) to the scene, so that there's a theater for the
-/// evolution of the [automaton](Automaton). Attach a
-/// [CellPosition]&#32;[component](Component) to each cell, so that [evolve] can
-/// easily update the cells. Add an instructional [overlay](Instructions), displayed
-/// only when the [evolver](evolve) is paused. Add an [FPS](Fps) label,
-/// displayed only when the player holds down the right shift key.
+/// Build the complete user interface:
+///
+/// * A grid representing the [history](History).
+/// * An instructional banner, displayed when the evolver is paused.
+/// * A rule buffer banner, displayed while the user is entering a new rule.
+/// * An FPS banner, displayed while the user holds the right shift key.
 fn build_ui(history: Res<History>, mut commands: Commands)
 {
-	// Add the grid that illustrates the history of the active automaton.
 	commands
 		.spawn(NodeBundle {
 			style: Style {
-				display: Display::Grid,
 				height: Val::Percent(100.0),
 				width: Val::Percent(100.0),
-				aspect_ratio: Some(1.0),
-				padding: UiRect::all(Val::Px(24.0)),
-				column_gap: Val::Px(1.0),
-				row_gap: Val::Px(1.0),
-				grid_template_columns: RepeatedGridTrack::flex(
-					AUTOMATON_LENGTH as u16, 1.0),
-				grid_template_rows: RepeatedGridTrack::flex(
-					AUTOMATON_HISTORY as u16, 1.0),
 				..default()
 			},
 			background_color: BackgroundColor(Color::DARK_GRAY),
 			..default()
 		})
 		.with_children(|builder| {
-			for (row, automaton) in history.iter().enumerate()
-			{
-				for (column, is_live) in automaton.iter().enumerate()
-				{
-					cell(builder, CellPosition { row, column }, *is_live);
-				}
-			}
-			// Create a transparent overlay that is visible when the evolver
-			// is paused. Note that centering text is particularly hard, and all
-			// of the online examples I could find were wrong, so here are the
-			// salient points:
-			//
-			// * Set `display` to `Display::Flex` in the parent.
-			// * Set `justify_content` to `JustifyContent::Center` in the
-			//   parent.
-			// * Set `align_self` to `AlignSelf::Center` in the `style` of the
-			//   `TextBundle` itself.
-			builder
-				.spawn(
-					(
-						NodeBundle {
-							style: Style {
-								display: Display::Flex,
-								position_type: PositionType::Absolute,
-								height: Val::Px(50.0),
-								width: Val::Percent(100.0),
-								padding: UiRect::all(Val::Px(8.0)),
-								top: Val::Px(50.0),
-								justify_content: JustifyContent::Center,
-								..default()
-							},
-							background_color: BackgroundColor(
-								Color::rgba(0.0, 0.0, 0.0, 0.8)
-							),
-							..default()
-						},
-						Instructions
-					)
-				)
-				.with_children(|builder| {
-					builder.spawn(
-						TextBundle::from_section(
-							"[space] to resume/pause, [right shift] to \
-								show FPS, or type a new rule",
-							TextStyle {
-								font_size: 28.0,
-								color: LABEL_COLOR,
-								..default()
-							}
-						)
-						.with_style(Style {
-							align_self: AlignSelf::Center,
-							..default()
-						})
-					);
-				});
-			// Create an FPS label that displays only when the player holds
-			// right shift. Place it in the lower right.
-			builder
-				.spawn(
-					(
-						NodeBundle {
-							style: Style {
-								display: Display::None,
-								position_type: PositionType::Absolute,
-								height: Val::Px(50.0),
-								width: Val::Px(200.0),
-								padding: UiRect::all(Val::Px(8.0)),
-								bottom: Val::Px(50.0),
-								right: Val::Px(50.0),
-								..default()
-							},
-							background_color: BackgroundColor(
-								Color::rgba(0.0, 0.0, 0.0, 0.8)
-							),
-							..default()
-						},
-						Fps
-					)
-				)
-				.with_children(|builder| {
-					builder
-						.spawn(
-							(
-								TextBundle::from_sections([
-									TextSection::new(
-										"FPS: ",
-										TextStyle {
-											font_size: 32.0,
-											color: LABEL_COLOR,
-											..default()
-										},
-									),
-									TextSection::from_style(TextStyle {
-										font_size: 32.0,
-										color: LABEL_COLOR,
-										..default()
-									})
-								]),
-								FpsLabel
-							)
-						);
-				});
-			// Create a label that displays the next rule to run, but only if
-			// such a rule is actively being input. Place it in the lower left.
-			builder
-				.spawn(
-					(
-						NodeBundle {
-							style: Style {
-								display: Display::None,
-								position_type: PositionType::Absolute,
-								height: Val::Px(50.0),
-								width: Val::Px(300.0),
-								padding: UiRect::all(Val::Px(8.0)),
-								bottom: Val::Px(50.0),
-								left: Val::Px(50.0),
-								..default()
-							},
-							background_color: BackgroundColor(
-								Color::rgba(0.0, 0.0, 0.0, 0.8)
-							),
-							..default()
-						},
-						NextRule
-					)
-				)
-				.with_children(|builder| {
-					builder
-						.spawn(
-							(
-								TextBundle::from_sections([
-									TextSection::new(
-										"Next up: ",
-										TextStyle {
-											font_size: 32.0,
-											color: LABEL_COLOR,
-											..default()
-										},
-									),
-									TextSection::from_style(TextStyle {
-										font_size: 32.0,
-										color: LABEL_COLOR,
-										..default()
-									})
-								]),
-								NextRuleLabel
-							)
-						);
-				});
+			build_history(builder, &history);
+			build_instruction_banner(builder);
+			build_next_rule_banner(builder);
+			build_fps_banner(builder);
 		});
 }
 
@@ -519,15 +362,13 @@ fn maybe_toggle_instructions(
 	if keys.just_pressed(KeyCode::Space)
 	{
 		timer.toggle();
-		for mut style in &mut instructions
+		let style = &mut instructions.single_mut();
+		style.display = match style.display
 		{
-			style.display = match style.display
-			{
-				Display::Flex => Display::None,
-				Display::None => Display::Flex,
-				Display::Grid => unreachable!()
-			};
-		}
+			Display::Flex => Display::None,
+			Display::None => Display::Flex,
+			Display::Grid => unreachable!()
+		};
 	}
 }
 
@@ -545,12 +386,10 @@ fn accept_digit(
 			None => {}
 		}
 	}
-	for mut style in &mut next_rule
-	{
-		style.display =
-			if builder.has_input() { Display::Flex }
-			else { Display::None };
-	}
+	let style = &mut next_rule.single_mut();
+	style.display =
+		if builder.buffered_input().is_some() { Display::Flex }
+		else { Display::None };
 }
 
 /// When right shift is held, display the frames per second (FPS).
@@ -558,27 +397,22 @@ fn maybe_show_fps(
 	keys: Res<Input<KeyCode>>,
 	mut fps: Query<&mut Style, With<Fps>>
 ) {
-	if keys.just_pressed(KeyCode::ShiftRight)
+	let style = &mut fps.single_mut();
+	style.display = match keys.pressed(KeyCode::ShiftRight)
 	{
-		for mut style in &mut fps
-		{
-			style.display = Display::Flex;
-		}
-	}
-	else if keys.just_released(KeyCode::ShiftRight)
-	{
-		for mut style in &mut fps
-		{
-			style.display = Display::None;
-		}
-	}
+		true => Display::Flex,
+		false => Display::None
+	};
 }
 
-/// Handle mouse input.
+/// Handle toggling of the cells in the latest generation.
 ///
-/// * On hover of the active automaton _while paused_, highlight the button to
+/// * On press of an active cell _while paused_, toggle the cell.
+/// * On hover of an active cell _while paused_, highlight the button to
 ///   indicate interactivity.
-fn handle_mouse(
+/// * On un-hover of an active cell _while paused_, restore the button's
+///   original [liveness&#32;color](liveness_color).
+fn maybe_toggle_cells(
 	timer: ResMut<EvolutionTimer>,
 	mut history: ResMut<History>,
 	mut interaction: Query<
@@ -588,9 +422,9 @@ fn handle_mouse(
 ) {
 	if !timer.is_running()
 	{
-		for (mouse, position, mut color) in &mut interaction
+		for (interaction, position, mut color) in &mut interaction
 		{
-			match *mouse
+			match *interaction
 			{
 				Interaction::Pressed =>
 				{
@@ -616,16 +450,15 @@ fn update_next_rule(
 	builder: Res<AutomatonRuleBuilder>,
 	mut next_rule: Query<&mut Text, With<NextRuleLabel>>
 ) {
-	if builder.has_input()
+	let buffered_input = builder.buffered_input();
+	if buffered_input.is_some()
 	{
-		for mut text in &mut next_rule
+		let text = &mut next_rule.single_mut();
+		text.sections[1].value = match builder.buffered_input()
 		{
-			text.sections[1].value = match builder.buffered_input()
-			{
-				Some(rule) if rule.parse::<u8>().is_ok() => rule,
-				_ => "Error".to_string()
-			};
-		}
+			Some(rule) if rule.parse::<u8>().is_ok() => rule.to_string(),
+			_ => "Error".to_string()
+		};
 	}
 }
 
@@ -644,11 +477,8 @@ fn maybe_change_rule(
 		Some(new_rule) =>
 		{
 			*rule = new_rule;
-			for mut window in &mut query
-			{
-				window.title = format!("Cellular Automaton: {}", *rule);
-			}
-			println!("rule = {}", *rule);
+			let window = &mut query.single_mut();
+			set_title(window.as_mut(), *rule);
 		},
 		None => {}
 	}
@@ -683,21 +513,50 @@ fn update_fps(
 	diagnostics: Res<DiagnosticsStore>,
 	mut fps: Query<&mut Text, With<FpsLabel>>
 ) {
-	for mut text in &mut fps
+	let text = &mut fps.single_mut();
+	let fps = diagnostics.get(FrameTimeDiagnosticsPlugin::FPS).unwrap();
+	if let Some(value) = fps.smoothed()
 	{
-		if let Some(fps) = diagnostics.get(FrameTimeDiagnosticsPlugin::FPS)
-		{
-			if let Some(value) = fps.smoothed()
-			{
-				text.sections[1].value = format!("{value:.2}");
-			}
-		}
+		text.sections[1].value = format!("{:.2}", value);
 	}
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-//                                 Utilities.                                 //
+//                              User interface.                               //
 ////////////////////////////////////////////////////////////////////////////////
+
+/// Build the grid that corresponds to the [history](History).
+fn build_history(builder: &mut ChildBuilder, history: &History)
+{
+	builder
+		.spawn(NodeBundle {
+			style: Style {
+				display: Display::Grid,
+				height: Val::Percent(100.0),
+				width: Val::Percent(100.0),
+				aspect_ratio: Some(1.0),
+				padding: UiRect::all(Val::Px(24.0)),
+				column_gap: Val::Px(1.0),
+				row_gap: Val::Px(1.0),
+				grid_template_columns: RepeatedGridTrack::flex(
+					AUTOMATON_LENGTH as u16, 1.0),
+				grid_template_rows: RepeatedGridTrack::flex(
+					AUTOMATON_HISTORY as u16, 1.0),
+				..default()
+			},
+			background_color: BackgroundColor(Color::DARK_GRAY),
+			..default()
+		})
+		.with_children(|builder| {
+			for (row, automaton) in history.iter().enumerate()
+			{
+				for (column, is_live) in automaton.iter().enumerate()
+				{
+					cell(builder, CellPosition { row, column }, *is_live);
+				}
+			}
+		});
+}
 
 /// Add a visual cell to the component whose [builder](ChildBuilder) is
 /// specified, attaching the specified [position](CellPosition) as a
@@ -714,7 +573,7 @@ fn cell(builder: &mut ChildBuilder, position: CellPosition, live: bool)
 				padding: UiRect::all(Val::Px(2.0)),
 				..default()
 			},
-			background_color: BackgroundColor(LIVE_COLOR),
+			background_color: liveness_color(true),
 			..default()
 		})
 		.with_children(|builder| {
@@ -753,10 +612,183 @@ fn liveness_color(live: bool) -> BackgroundColor
 	BackgroundColor(if live { LIVE_COLOR } else { DEAD_COLOR })
 }
 
+/// Create a transparent overlay that is visible when the evolver is paused.
+/// Note that centering text is particularly hard, and all of the online
+/// examples I could find were wrong, so here are the salient points:
+///
+/// * Set `display` to `Display::Flex` in the parent.
+/// * Set `justify_content` to `JustifyContent::Center` in the parent.
+/// * Set `align_self` to `AlignSelf::Center` in the `style` of the `TextBundle`
+///   itself.
+fn build_instruction_banner(builder: &mut ChildBuilder)
+{
+	builder
+		.spawn(
+			(
+				NodeBundle {
+					style: Style {
+						display: Display::Flex,
+						position_type: PositionType::Absolute,
+						height: Val::Px(50.0),
+						width: Val::Percent(100.0),
+						padding: UiRect::all(Val::Px(8.0)),
+						top: Val::Px(50.0),
+						justify_content: JustifyContent::Center,
+						..default()
+					},
+					background_color: BackgroundColor(
+						Color::rgba(0.0, 0.0, 0.0, 0.8)
+					),
+					..default()
+				},
+				Instructions
+			)
+		)
+		.with_children(|builder| {
+			builder.spawn(
+				TextBundle::from_section(
+					"[space] to resume/pause, [right shift] to \
+						show FPS, or type a new rule",
+					TextStyle {
+						font_size: 28.0,
+						color: LABEL_COLOR,
+						..default()
+					}
+				)
+					.with_style(Style {
+						align_self: AlignSelf::Center,
+						..default()
+					})
+			);
+		});
+}
+
+/// Create a label that displays the next rule to run, but only if such a rule
+/// is actively being input. Place it in the lower left.
+fn build_next_rule_banner(builder: &mut ChildBuilder)
+{
+	builder
+		.spawn(
+			(
+				NodeBundle {
+					style: Style {
+						display: Display::None,
+						position_type: PositionType::Absolute,
+						height: Val::Px(50.0),
+						width: Val::Px(300.0),
+						padding: UiRect::all(Val::Px(8.0)),
+						bottom: Val::Px(50.0),
+						left: Val::Px(50.0),
+						..default()
+					},
+					background_color: BackgroundColor(
+						Color::rgba(0.0, 0.0, 0.0, 0.8)
+					),
+					..default()
+				},
+				NextRule
+			)
+		)
+		.with_children(|builder| {
+			builder
+				.spawn(
+					(
+						TextBundle::from_sections([
+							TextSection::new(
+								"Next up: ",
+								TextStyle {
+									font_size: 32.0,
+									color: LABEL_COLOR,
+									..default()
+								},
+							),
+							TextSection::from_style(TextStyle {
+								font_size: 32.0,
+								color: LABEL_COLOR,
+								..default()
+							})
+						]),
+						NextRuleLabel
+					)
+				);
+		});
+}
+
+/// Create an FPS label that displays only when the player holds right shift.
+/// Place it in the lower right.
+fn build_fps_banner(builder: &mut ChildBuilder)
+{
+	builder
+		.spawn(
+			(
+				NodeBundle {
+					style: Style {
+						display: Display::None,
+						position_type: PositionType::Absolute,
+						height: Val::Px(50.0),
+						width: Val::Px(200.0),
+						padding: UiRect::all(Val::Px(8.0)),
+						bottom: Val::Px(50.0),
+						right: Val::Px(50.0),
+						..default()
+					},
+					background_color: BackgroundColor(
+						Color::rgba(0.0, 0.0, 0.0, 0.8)
+					),
+					..default()
+				},
+				Fps
+			)
+		)
+		.with_children(|builder| {
+			builder
+				.spawn(
+					(
+						TextBundle::from_sections([
+							TextSection::new(
+								"FPS: ",
+								TextStyle {
+									font_size: 32.0,
+									color: LABEL_COLOR,
+									..default()
+								},
+							),
+							TextSection::from_style(TextStyle {
+								font_size: 32.0,
+								color: LABEL_COLOR,
+								..default()
+							})
+						]),
+						FpsLabel
+					)
+				);
+		});
+}
+
+/// Set the title of the window to show the active [rule](AutomatonRule).
+#[cfg(not(target_family = "wasm"))]
+fn set_title(window: &mut Window, rule: AutomatonRule)
+{
+	window.title = rule.to_string();
+}
+
+/// Set the title of the window to show the active [rule](AutomatonRule). The
+/// Bevy window is not wired to the browser, so it doesn't have a title bar.
+/// Tell the document to update its label instead.
+#[cfg(target_family = "wasm")]
+fn set_title(_window: &mut Window, rule: AutomatonRule)
+{
+	web_sys::window().unwrap().document().unwrap().set_title(&rule.to_string());
+}
+
+////////////////////////////////////////////////////////////////////////////////
+//                                 Utilities.                                 //
+////////////////////////////////////////////////////////////////////////////////
+
 /// Contract for value conversion to a digit character.
 trait ToDigit: Copy
 {
-	/// Convert the receiver into a digit character
+	/// Convert the receiver into a digit character.
 	fn to_digit(self) -> Option<char>;
 }
 
