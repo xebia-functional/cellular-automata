@@ -1,9 +1,33 @@
 # Cellular Automata
 
+
+<!--- TODO 
+I'm going to add editorial comments like this, in markdown comments.
+Such comments will PRECEDE the content they apply to.
+-->
+
 In this post, we are going to bring elementary cellular automata to life using
 the Rust programming language and the [Bevy](https://bevyengine.org/) game
 engine. We'll learn a few things about cellular automata, Rust,
 entity-component-system architecture, and basic game development.
+
+<!--- TODO
+For publication, I *love* the italicization. Totally on board. 
+Might also be handy to have halt text for them, or a dictionary somewhere.
+-->
+
+<!--- TODO
+The description of the neighborhood makes total sense to me. Consider if a newbie
+to automata would feel the same; the "edges of each dimension" is my main concern there
+because if you VISUALIZE it it makes sense but reading it in text may confuse some
+less visually-oriented readers.
+-->
+
+<!--- TODO
+The evolutionary rule bit makes sense, but feels a little out of band.
+I want this to be in its own paragraph somehow, or in a footnote. Do you ever
+apply variable evolutionary conditions?
+-->
 
 A _cellular automaton_ comprises a regular grid of _cells_, each of which must
 express exactly one of a finite set of _states_. For each cell, it and its
@@ -15,6 +39,22 @@ automaton _evolves_ over _time_ as governed by some _rule_ that dictates the
 next state of each cell based on the current state of its neighborhood. The full
 set of next states is called the next _generation_. The evolutionary rule is
 typically uniform and unchanging over time, but this is not strictly required.
+
+<!--- TODO
+The first two sentences here don't flow or connect well. They're more than mere 
+toys, yes, but... this needs to be connected more gooder. Or at least flow well;
+Wolfram's point was that simple systems can be used to detect and construct 
+complex behavior even in the real world (i.e., fractals all the way down... and up)
+and you're sort of nodding to this idea (particularly by referencing Wolfram!) but
+it wants to be either leaned into more in the early parts of this paragraph, or leaned
+into less.
+-->
+
+<!---
+And now I'm interested in HOW rule 110 is Turing complete, dadgummit. 
+Don't leave me hanging; I didn't know this, and now I do, and now I wonder why
+and how.
+-->
 
 It's fun to watch a cellular automaton evolve, but cellular automata are more
 than mere mathematical toys. Stanisław Ulam and John von Neumann discovered
@@ -31,17 +71,38 @@ simplicity. In 1985, Wolfram conjectured that one of these automata, called Rule
 
 ## Elementary cellular automata
 
+<!--- TODO
+So wait - Conway's game of life is a grid, a 2D array, and here you're saying
+an elementary cellular automaton is a single row of cells that evolves. So 
+Conway's game of life is NOT an elementary automaton? This feels significant.
+-->
+
 An _elementary cellular automaton_ is usually conceptualized as a single row of
 cells, each of which must express one of two states: _on_, represented by a
 black cell; or _off_, represented by a white cell. If you're already familiar
 with the Game of Life, then you might think of `on` as _live_ and `off` as
 _dead_.
 
+<!--- TODO
+Back to the prior comment: Conway's game is typically done as an animation
+because that's a convenient way to visualize ... a complex automaton, I guess?
+I don't know the terminology for it in this context. Or any context. I'm reading
+an article on cellular automata; I feel like the article should be filling this gap.
+-->
+
 Multiple generations are usually represented as a two-dimensional grid, such
 that each row represents a complete generation. New generations are added at the
 end, so evolution progresses downward over time. Evolution is driven by a single
 fixed rule. This rule encodes the complete transition table for the eight
 possible neighborhoods.
+
+<!--- TODO
+I feel like the definition of a neighborhood is unclear here. A neighborhood consists
+of the cell in question ('the one whose state is being considered') and every cell 
+next to it, with each cell next to it being considered its own neighborhood.
+You said this - I mean, I can read it RIGHT THERE, it's even still on my screen as 
+I type this comment - but it's still not jargon by the time we get HERE.
+-->
 
 To see why there are eight possible neighborhoods, let's consider adjacency in
 one-dimensional space. We'll define the _distance_ between two cells $a$ and $b$
@@ -131,10 +192,27 @@ Other rules produce evolutions with startling correspondences to other
 mathematical entities, like the Jacobsthal numbers and Pascal's triangle. And
 rules #110 and #124 are both capable of universal computation.
 
+<!--- TODO
+I know I have a lot of comments up to this point, but so far, I'm all in.
+-->
+
+<!--- TODO
+Worth noting: we *can see* why automata are interesting; I might be a 
+dope and not KNOW it yet. Remember thy readers and that they is stupid sometimeses.
+-->
+
 Now that we know why elementary cellular automata are interesting, let's model
 them in Rust.
 
 ## Modeling Elementary Cellular Automata with Rust
+
+<!--- TODO
+for the web, "here" is a crappy link. Say there's a project developed 
+based on the blog post, and that the [source is available on github.] 
+Or "There's [a project] based on this blog post...."
+"Here" is bad wording for the web. You want links to be for definitive 
+content and use definitive words. Ask me how I [know].
+-->
 
 That project that I developed to accompany this blog post is rooted [here](..).
 It's laid out in a pretty vanilla fashion, completely standard for a simple
@@ -148,6 +226,15 @@ section are sourced from that file.
 Let's look at the representation of an elementary cellular automaton first.
 
 ### `Automaton`, _const_ genericity, and conditional derivation
+
+<!--- TODO
+Because I am not especially skilled as a rustacean - okay, I'm giving myself a LOT
+of credit I don't deserve, and I know it - I was thinking it might be useful to
+provide a link to "here's some basic skills that newer Rust developers might need"
+here somewhere. YMMV. If you don't include something like that, well, that's obviously
+the right choice. Just MAKE the choice, whether to include a primer for people who
+are confused, or not.
+-->
 
 Essentially, we keep our representational strategy super simple: we express an
 elementary cellular automaton as a boolean array, albeit with a few frills.
@@ -174,12 +261,33 @@ Because `AUTOMATON_LENGTH` is `const` data, we can use it to satisfy the _const_
 parameter `K`. So our default `Automaton` will comprise 64 cells, which is
 plenty for an interesting visualization.
 
+<!--- TODO
+Woof, this is a lot of explanation for the final sentence in this next paragraph.
+Is this significant? If I know Rust well enough for this article, do I need this?
+I mean, *I* need it, but that's because I barely know Rust.
+-->
+
 `bool` implements `Copy`, and arrays implement `Copy` if their element type
 does. Extending this chain of reasoning to structs, tuples, and struct
 tuples, our newtype is also eligible to implement `Copy` because its only field
 implements `Copy`. Even if we changed `AUTOMATON_LENGTH` to some other number,
 it would need to be small enough to support all-at-once presentation in the
 application, so it's efficient enough to derive `Copy` for `Automaton`.
+
+<!--- TODO
+OOOOO I GET IT! Dang, that's... _elegant_. What the hecking heck? Now 
+I have a real complaint: WARN UR DUDES, DUDE. Describe the payoff for #[derive] and 
+#[cfg_attr] before you use them! I was reading this paragraph, going "grr, why do I care
+about this" and then WHAM OH CRAP I GET IT WHAT THE HECK THAT'S AWESOME.
+
+This is the same problem the first draft you showed me had, really. Describe the
+expectation, THEN deliver it; in the first draft you showed me, you gave me a lot
+of preamble before telling me what to expect, and as a result, if I'd not been 
+a deliberately interested reader, you'd have lost me. Same thing here. I went BACK 
+and looked at the Rust with new eyes, and holy cow. Now I want to use Rust more than
+I did. But you relied on ME tying things together. Don't. I'm an idiot. 
+I'm unreliable at this tying-things-together jam.
+-->
 
 The application itself doesn't rely on comparison, but the test suite does. We
 get the best of both worlds with `cfg_attr`: we implement `PartialEq` and `Eq`
@@ -193,8 +301,16 @@ to perform coordinate transformations to account for this.
 
 ### Succession and _const fn_
 
+<!--- TODO
+What next method? Describe. "Now let's look at a method we'll call 'next,' that...
+-->
+
 The `next` method computes the next generation of an `Automaton`. There are
 three cases that `next` needs to handle:
+
+<!--- TODO
+A dummy asks: "So it wraps around?"
+-->
 
 1. Computing the leading edge cell, i.e., the rightmost one, which requires
    treating the trailing edge cell, i.e., the leftmost one, as its right
@@ -263,6 +379,11 @@ thumb is to make data and functions _const_ wherever possible, as it expands
 your compile-time vocabulary and thus improves the expressiveness of your
 _const_ and _static_ initializers.
 
+<!--- TODO
+There's a 'next_cell' method? (I know there is, I've read ahead, but ... don't
+expect your idiot users to do this.)
+-->
+
 Right, back to `next`. Armed with the population ordinal, we can call the
 `next_cell` method to ask the supplied rule to produce the appropriate successor
 for the corresponding neighborhood. After that, it's simply a matter of
@@ -271,6 +392,12 @@ around it before returning.
 
 ### Rules
 
+<!--- TODO
+Was there an explicit definition of "a wolfram code" that I missed? I might have.
+If I did, someone else will, too. Make sure it's defined... or explained... or 
+highlighted.
+-->
+
 `AutomataRule` represents an evolutionary rule, once again using the newtype
 pattern. This newtype wraps a Wolfram code, expressed as a `u8`.
 
@@ -278,6 +405,10 @@ pattern. This newtype wraps a Wolfram code, expressed as a `u8`.
 #[derive(Copy, Clone, Default, Debug, PartialEq, Eq, PartialOrd, Ord, Resource)]
 pub struct AutomatonRule(u8);
 ```
+
+<!--- TODO
+Oooo I finded it! ... there's 'next_cell'! I was a-wonderin'!
+-->
 
 Now we look at `next_cell`, which is completely straightforward:
 
@@ -292,12 +423,23 @@ impl AutomatonRule
 }
 ```
 
+<!--- TODO
+I know you're writing for programmers, but ... trust me, translate this 
+next paragraph into human, or human idiot.
+-->
+
 The Wolfram code fully encapsulates the transition table for an elementary
 cellular automaton, so it's a simple matter of extracting the bit associated
 with a population ordinal. As expected, it's just a bit shift, a bitwise _and_,
 and a test against zero.
 
 ### Instantiating an `Automaton<K>`
+
+<!--- TODO
+As much as I appreciate lots of syllables in my elocution, simpler words are gooder.
+"We need a clean way to build an Automaton" is how I would have written it, because
+"ergonomic" ... makes sense, I can see it, but it isn't how I'd think of it.
+-->
 
 We need an ergonomic way to populate an `Automaton`:
 
@@ -319,6 +461,13 @@ impl<const K: usize> From<u64> for Automaton<K>
 
 Pretty straightforward. There are only a couple tricks here.
 
+<!--- TODO
+If there were a drinking game where a more complex way of saying something compared
+to a simpler expression triggered a shot, I'd be dead of alcohol poisoning by now.
+And I'm only at line... 467 in this document as I write this. I get it, but still... 
+_prima facie_? Really?
+-->
+
 1. We need to traverse both the array and the `u64` in the same direction, i.e.,
    from least-significant cell to most-significant cell. For the array, this
    means indexing up from zero; for the `u64`, this means masking up from $2^0$
@@ -332,6 +481,14 @@ Pretty straightforward. There are only a couple tricks here.
    predicate is a _const_ expression, meaning that the compiler can optimize
    away the runtime check whenever the _const_ expression evaluates to `true`.
    In release mode, this ends up being a static guard after all!
+
+
+<!--- TODO
+If you have a NOTE: capability, or something to set this next section apart, use it here.
+I had a comment that I TOTALLY deleted because it was completely unjustified and wrong,
+and I have to 100% give you mad props for including this section. But it still
+should be set apart from the main text body.
+-->
 
 Worth noting, _const_ implementation bounds, i.e., _const_ expressions in
 _const_ parameter positions, are available in nightly Rust, but not in stable
@@ -365,6 +522,10 @@ availability.
 
 ### Testing the evolutionary mechanism
 
+<!--- TODO
+Link Bevy here, please.
+-->
+
 Before moving on to Bevy, we should test whether all this works. We pick an
 arbitrary initial generation and rule, mechanically perform an evolution by
 hand, then rely on structural induction to conclude that the implementation is
@@ -390,6 +551,10 @@ fn rule_110()
 	assert_eq!(expected, actual);
 }
 ```
+
+<!--- TODO
+I like how many words you used here... for brevity.
+-->
 
 Our test suite includes a similar test for rule #30, just for safety, but I've
 omitted it here for brevity.
@@ -456,6 +621,10 @@ impl<const K: usize, const N: usize> History<K, N>
 }
 ```
 
+<!--- TODO
+The "for sincerity" made me laugh out loud. We're picking up speed, as expected.
+-->
+
 `ConstGenericRingBuffer::new` builds an empty ring buffer, and our loop fills it
 with empty automata. Fullness of the ring buffer is an essential postcondition
 for our use case, so we `assert!` it for sincerity. Now we can iterate through
@@ -501,10 +670,25 @@ impl<const K: usize, const N: usize> History<K, N>
 }
 ```
 
+<!--- TODO
+I feel like I'm being shorted something here. I don't know why, but I feel like this
+next paragraph might as well say "and then one thing leads to another, and we colonize
+Jupiter with marmosets."
+-->
+
 And that's more or less everything we need from the model, so it's time to leave
 [`src/automata.rs`](../src/automata.rs) behind and turn our attention to the UI.
 
+
+<!--- TODO
+This is a GREAT place to start a "part II" if the blog entry is too long.
+-->
+
 ## Entity-component-system (ECS) architecture
+
+<!--- TODO
+We STARTED with theory... wait, I'm not a copy editor.
+-->
 
 We start with theory, moved to practice, and now it's time for some more theory.
 Before we dive into using Bevy, let's first make a pit stop to learn about
@@ -537,6 +721,10 @@ composition.
 
 ### Bevy
 
+<!--- TODO
+No fair. What do Serde and egui do?
+-->
+
 [Bevy](https://bevyengine.org/) is a data-driven game engine with a fast,
 flexible ECS. It's relatively new, but it's also powerful and cross-platform,
 with support for 2D and 3D render pipelines, scene persistence, cascading style
@@ -559,6 +747,11 @@ If this is too abstract, don't worry. We'll put it together one piece at a time
 with concrete examples.
 
 ### Setting up cross-platform Bevy
+
+<!--- TODO
+Okay, I read ahead here, so this comment sort of applies to a LOT of the next sections of
+text: WARN YOUR READER that you're taking a diversion into cross-platform stuff, please.
+-->
 
 Let's get Bevy wired up for both native and web development and deployment. In
 [`Cargo.toml`](../Cargo.toml), we add not one, but _two_ dependencies for Bevy.
@@ -606,6 +799,11 @@ linker = "rust-lld.exe"
 [target.wasm32-unknown-unknown]
 runner = "wasm-server-runner"
 ```
+
+<!---
+Hrm, I keep wanting to see something about "can be installed like so" but I 
+guess llvm's docs are enough for that? Ugh. I don't like that. Reality ensues.
+-->
 
 We support Linux, macOS, and Windows on x86; macOS on AArch64; and web on WASM.
 As recommended by the folks behind Bevy, we use [`lld`](https://lld.llvm.org/),
@@ -744,6 +942,11 @@ native and web.
 
 ### Giving control to Bevy
 
+<!--- TODO
+More than "bottom-up", please - we've seen how to INVOKE the app with 
+arguments. We're now going to see how the app actually runs, since it has its arguments.
+-->
+
 We've done bottom-up examination of the code so far, but now it's time to go top
 down. Let's see how `main` initializes Bevy and hands over control to its engine
 loop.
@@ -781,6 +984,15 @@ the application model. The _runner_ is the main loop that processes user input,
 evolves the world over time, and controls rendering. And _plugins_ are
 pre-packaged mini-worlds: collections of resources and systems that can be
 reused across many projects.
+
+<!--- TODO
+It's great that you tied it back to Resource, but honestly, people DO NOT
+OBSERVE well. This is something that you should have called out explicitly.
+Anyone who didn't know is going to have cargo-culted it, and you DO NOT WANT
+to teach people to cargo-cult. Teach them to think. Tell them "Hey, this Resource 
+reference feels out-of-band, but ... we're going to use it once we hit Bevy."
+Except in your own words.
+-->
 
 A _resource_ is a global singleton with a unique type. Systems access resources
 via dependency injection. We use `insert_resource` to register both the rule and
@@ -894,6 +1106,14 @@ logic. The `Update` schedule runs once per iteration of the engine loop.
 association into the world.
 
 ### Setting the window title
+
+<!--- TODO
+To be honest, I'm glad you said this. I was thinking to myself, "I love this so far
+but what I'm REALLY missing is a reachable catharsis. I'd thought of watching
+"Hunt for Red October" because nothing gives me catharsis like a Romanian 
+submarine captain using a Scottish accent, but ... wait, can RUST give me
+catharsis? Let's KEEP READING!"
+-->
 
 Before diving into the various systems, let's take a short detour to reach
 catharsis about window titles. We abstracted the logic out to `set_title`, so
@@ -1237,6 +1457,13 @@ worked reliably in all cases:
 Save yourself some time and follow those steps if you want to center text in
 Bevy!
 
+<!--- TODO
+That is a LOT of tangential stuff focusing on UI, which ... is part of why
+I despise UI. My eyes glazed over a lot of this, even though I understood it well
+enough, I think. It's rust-specific enough that I, as a casual rust user, was like
+"... okay." I didn't see anything particular in the text that stood out, I don't think.
+-->
+
 #### Next-rule banner
 
 The next-rule banner presents the buffered user input that contributes toward
@@ -1293,6 +1520,11 @@ fn build_next_rule_banner(builder: &mut ChildBuilder)
 		});
 }
 ```
+
+<!--- TODO
+Remind me: what's a systemic identity's value? You mean a unique addressable form
+for the application, or...
+-->
 
 We attach a custom `NextRule` component instead of an `Instructions` component,
 but it serves the same purpose — to give this entity a systemic identity.
@@ -1377,6 +1609,11 @@ fn build_fps_banner(builder: &mut ChildBuilder)
 ```
 
 ### The evolver
+
+<!--- TODO
+OH THANK GOD. Can I just forget most of that prior section existed and focus 
+on the cool stuff now?
+-->
 
 Okay, we're done with setup! Now it's time for the exciting part: evolving the
 cellular automaton!
@@ -1782,6 +2019,10 @@ fn accept_digit(
 }
 ```
 
+<!--- TODO
+We're back in UI hell, aren't we? I feel... singed. But I get it.
+-->
+
 Nothing new in the signature and nothing terribly novel in the body. In short,
 we append a digit to the buffer and toggle the visibility of the overlay. We
 turn our attention momentarily to `to_digit`, because it involves the only trait
@@ -1935,6 +2176,13 @@ We extract the desired `Diagnostic` by id, which in this case is the aptly named
 update the dynamic section of the text at index `1`.
 
 ## Conclusion
+
+<!--- TODO
+THIS IS NOT ENOUGH! Dang it, screenshots. Show me some interesting rules. This is
+the money shot. Show the benefits of enduring all this cool talky knowledge, dang it!
+THIS IS IMPORTANT. My editors would tell me, "hey, this is cool and all, but no, give
+the payoff, or else." I strongly suggest you do that here.
+-->
 
 Well, as they say these days, _that was a lot_. We covered some math history,
 computer science, Rust programming, and elementary game development. Hopefully,
