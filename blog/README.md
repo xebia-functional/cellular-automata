@@ -506,9 +506,9 @@ And that's more or less everything we need from the model, so it's time to leave
 
 ## Entity-component-system (ECS) architecture
 
-We start with theory, moved to practice, and now it's time for some more theory.
-Before we dive into using Bevy, let's first make a pit stop to learn about
-_entity-component-system_ (ECS) architecture.
+We started with theory, moved to practice, and now it's time for some more
+theory. Before we dive into using Bevy, let's first make a pit stop to learn
+about _entity-component-system_ (ECS) architecture.
 
 In ECS architecture, a discrete event simulator subjects numerous _entities_ to
 _systems_ that govern their lifecycles and mediate their interactions through
