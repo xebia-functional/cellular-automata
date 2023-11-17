@@ -53,8 +53,8 @@ $a$'s right neighbor.
 
 Now recall that each cell can express exactly two states, `on` and `off`. Taking
 state into account, there are a total of $2^3 = 8$ possible neighborhoods. Using
-`X` to represent `on` and `•` to represent off, the eight possible neighborhoods
-and their population ordinals are:
+`X` to represent `on` and `•` to represent `off`, the eight possible
+neighborhoods and their population ordinals are:
 
 ```text
 ••• (0)
