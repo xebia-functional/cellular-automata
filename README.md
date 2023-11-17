@@ -44,7 +44,7 @@ Command Line Arguments
 When running the application natively from the command line, the following
 parameters are available:
 
-```shell
+```text
 $ cargo run -- --help
 Fun with cellular automata! Set the first generation with a known seed and/or
 rule, or let the program choose randomly. Watch the automaton evolve, and
