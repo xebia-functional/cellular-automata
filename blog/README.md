@@ -1,9 +1,9 @@
 # Cellular Automata
 
-Stanisław Ulam and John von Neumann were contemporaries at Los Alamos National
-Laboratory, working on different aspects of the famous (or infamous) Manhattan
-Project. Many weighty things have been said on their work there, but I'm going
-to concentrate on a fun little corner of their collaboration: cellular automata.
+In this post, we are going to bring elementary cellular automata to life using
+the Rust programming language and the [Bevy](https://bevyengine.org/) game
+engine. We'll learn a few things about cellular automata, Rust,
+entity-component-system architecture, and basic game development.
 
 A _cellular automaton_ comprises a regular grid of _cells_, each of which must
 express exactly one of a finite set of _states_. For each cell, it and its
@@ -17,20 +17,17 @@ set of next states is called the next _generation_. The evolutionary rule is
 typically uniform and unchanging over time, but this is not strictly required.
 
 It's fun to watch a cellular automaton evolve, but cellular automata are more
-than mere mathematical toys. In 1970, John Conway introduced the _Game of Life_,
-the two-dimensional cellular automaton now famous for its blocks, beehives,
-boats, blinkers, pulsars, gliders, and spaceships. In 1982, Conway published a
-proof of Turing-completeness, putting the automaton on the same computational
-footing as Turing machines and lambda calculus. Also in the 1980s, Stephen
-Wolfram systematically studied _elementary cellular automata_ — one-dimensional
-cellular automata of irreducible simplicity. In 1985, Wolfram conjectured that
-one of these automata, called Rule #110, was Turing-complete, and in 2004,
-Matthew Cook published the proof.
-
-In this post, we are going to bring elementary cellular automata to life using
-the Rust programming language and the [Bevy](https://bevyengine.org/) game
-engine. We'll learn a few things about cellular automata, Rust,
-entity-component-system architecture, and basic game development.
+than mere mathematical toys. Stanisław Ulam and John von Neumann discovered
+cellular automate in the 1940s during their time together at Los Alamos National
+Laboratory. In 1970, John Conway introduced the _Game of Life_, the
+two-dimensional cellular automaton now famous for its blocks, beehives, boats,
+blinkers, pulsars, gliders, and spaceships. In 1982, Conway published a proof of
+Turing-completeness, putting the automaton on the same computational footing as
+Turing machines and lambda calculus. Also in the 1980s, Stephen Wolfram
+published _A New Kind of Science_, wherein he systematically studied _elementary
+cellular automata_ — one-dimensional cellular automata of irreducible
+simplicity. In 1985, Wolfram conjectured that one of these automata, called Rule
+#110, was Turing-complete, and in 2004, Matthew Cook published the proof.
 
 ## Elementary cellular automata
 
