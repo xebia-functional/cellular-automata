@@ -798,7 +798,9 @@ all execution.
 
 ### Modular composition with plugins
 
-Perhaps surprisingly, our plugin is entirely stateless:
+Perhaps surprisingly, our plugin is entirely stateless. Over in
+[`src/ecs.rs`](../src/ecs.rs), where we're going to spend the rest of our time,
+we see:
 
 ```rust
 pub struct AutomataPlugin;
