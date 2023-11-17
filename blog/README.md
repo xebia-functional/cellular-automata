@@ -368,29 +368,30 @@ availability.
 Before moving on to Bevy, we should test whether all this works. We pick an
 arbitrary initial generation and rule, mechanically perform an evolution by
 hand, then rely on structural induction to conclude that the implementation is
-correct. Because we're free to pick anything we want, we pick `0x34244103` and
-rule #30. This scenario is
-[illustrated](https://en.wikipedia.org/wiki/Elementary_cellular_automaton#/media/File:One-d-cellular-automate-rule-30.gif)
+correct. Because we're free to pick anything we want, we pick initial generation
+`0x34244103` and rule #110. We also choose a shorter length automaton — 30 cells
+instead of 64 — for convenience. This scenario is
+[illustrated](https://commons.wikimedia.org/wiki/File:One-d-cellular-automaton-rule-110.gif#/media/File:One-d-cellular-automaton-rule-110.gif)
 on Wikipedia, so we can treat it as a community-checked test vector.
 
 ```rust
 #[test]
-fn rule_30()
+fn rule_110()
 {
 	//     XX•X••••X••X•••X•••••X••••••XX
 	// 0b00110100001001000100000100000011
 	// 0x   3   4   2   4   4   1   0   3
 	let automaton = Automaton::<30>::from(0x34244103);
-	//     •••XX••XXXXXX•XXX•••XXX••••XX•
-	// 0b00000110011111101110001110000110
-	// 0x   0   6   7   E   E   3   8   6
-	let expected = Automaton::<30>::from(0x067EE386);
-	let actual = automaton.next(30.into());
+	//     •XXX•••XX•XX••XX••••XX•••••XX•
+	// 0b00011100011011001100001100000110
+	// 0x   1   C   6   C   C   3   0   6
+	let expected = Automaton::<30>::from(0x1C6CC306);
+	let actual = automaton.next(110.into());
 	assert_eq!(expected, actual);
 }
 ```
 
-Our test suite includes a similar test for rule #110, just for safety, but I've
+Our test suite includes a similar test for rule #30, just for safety, but I've
 omitted it here for brevity.
 
 ### Ring buffers and `impl Trait` syntax
