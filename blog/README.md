@@ -2000,7 +2000,7 @@ action, can we? Without further ado, let's turn on a single cell and watch
 the
 [Sierpiński&#32;triangle](https://mathworld.wolfram.com/SierpinskiSieve.html)!
 
-[![Evolution of Rule #90](Rule%2090%20Evolution%20Thumbnail.png)](Rule%2090%20Evolution.mp4)
+[<img alt="Evolution of Rule #90" src="Rule%2090%20Evolution%20Thumbnail.png" width="100%"/>](Rule%2090%20Evolution.mp4 "Evolution of Rule #90")
 
 We covered some math history, computer science, Rust programming, and elementary
 game development. Hopefully, this is the beginning of a journey, not the end;
