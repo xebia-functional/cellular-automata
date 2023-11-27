@@ -1,33 +1,44 @@
-# Cellular Automata
+# Cellular Automata: Part I
 
-In this post, we are going to bring elementary cellular automata to life using
-the Rust programming language and the [Bevy](https://bevyengine.org/) game
-engine. We'll learn a few things about cellular automata, Rust,
-entity-component-system architecture, and basic game development.
+In this three-part series and the associated [project](..), we are going to
+bring elementary cellular automata to life using the
+[Rust](https://www.rust-lang.org/) programming language and the
+[Bevy](https://bevyengine.org/) game engine. We'll learn a few things about
+cellular automata, Rust, entity-component-system architecture, and basic game
+development.
 
 A _cellular automaton_ comprises a regular grid of _cells_, each of which must
 express exactly one of a finite set of _states_. For each cell, it and its
-adjacent cells constitute its _neighborhood_; to avoid edge conditions, the two
-"edges" of each dimension are considered adjacent. A cellular automaton may
-occupy an arbitrary, nonzero number of dimensions, and each dimension is
-considered for the purpose of identifying a cell's neighborhood. A cellular
-automaton _evolves_ over _time_ as governed by some _rule_ that dictates the
-next state of each cell based on the current state of its neighborhood. The full
-set of next states is called the next _generation_. The evolutionary rule is
-typically uniform and unchanging over time, but this is not strictly required.
+adjacent cells constitute its _neighborhood_; to avoid edge conditions herein,
+we choose to consider that the two "edges" of each dimension are adjacent. A
+cellular automaton may occupy an arbitrary, nonzero number of dimensions, and
+each dimension is considered for the purpose of identifying a cell's
+neighborhood. A cellular automaton _evolves_ over _time_ as governed by some
+_rule_ that dictates the next state of each cell based on the current state of
+its neighborhood. The full set of next states is called the next _generation_.
+The evolutionary rule is typically uniform and unchanging over time, but this is
+not strictly required; in particular, in our [project](..) we let the user pause
+the simulation to change rules and even manually toggle cell states.
 
-It's fun to watch a cellular automaton evolve, but cellular automata are more
-than mere mathematical toys. Stanisław Ulam and John von Neumann discovered
-cellular automate in the 1940s during their time together at Los Alamos National
-Laboratory. In 1970, John Conway introduced the _Game of Life_, the
-two-dimensional cellular automaton now famous for its blocks, beehives, boats,
-blinkers, pulsars, gliders, and spaceships. In 1982, Conway published a proof of
-Turing-completeness, putting the automaton on the same computational footing as
-Turing machines and lambda calculus. Also in the 1980s, Stephen Wolfram
-published _A New Kind of Science_, wherein he systematically studied _elementary
-cellular automata_ — one-dimensional cellular automata of irreducible
-simplicity. In 1985, Wolfram conjectured that one of these automata, called Rule
-#110, was Turing-complete, and in 2004, Matthew Cook published the proof.
+We're in this for the fun of watching cellular automata evolve, but cellular
+automata are more than mere mathematical toys. They showcase how complex
+behavior can arise naturally from minimal state and simple rules. In particular,
+Rule #110 is Turing-complete, able to implement a universal
+[cyclic&#32;tag&#32;system](https://mathworld.wolfram.com/CyclicTagSystem.html)
+that can emulate any
+[Turing&#32;machine](https://mathworld.wolfram.com/TuringMachine.html).
+
+This elegance has drawn great minds for decades. Stanisław Ulam and John von
+Neumann discovered cellular automate in the 1940s during their time together at
+Los Alamos National Laboratory. In 1970, John Conway introduced the _Game of
+Life_, the two-dimensional cellular automaton now famous for its blocks,
+beehives, boats, blinkers, pulsars, gliders, and spaceships. In 1982, Conway
+published a proof of Turing-completeness, finally putting the automaton on the
+same computational footing as Turing machines and lambda calculus. Also in the
+1980s, Stephen Wolfram published _A New Kind of Science_, wherein he
+systematically studied _elementary cellular automata_ — one-dimensional cellular
+automata of irreducible simplicity. In 1985, Wolfram first conjectured that Rule
+#110 was Turing-complete, and in 2004, Matthew Cook published the proof.
 
 ## Elementary cellular automata
 
@@ -35,12 +46,16 @@ An _elementary cellular automaton_ is usually conceptualized as a single row of
 cells, each of which must express one of two states: _on_, represented by a
 black cell; or _off_, represented by a white cell. If you're already familiar
 with the Game of Life, then you might think of `on` as _live_ and `off` as
-_dead_.
+_dead_. But the Game of Life, being two-dimensional, is _not_ an elementary
+cellular automaton, so we're moving on without it.
 
 Multiple generations are usually represented as a two-dimensional grid, such
 that each row represents a complete generation. New generations are added at the
-end, so evolution progresses downward over time. Evolution is driven by a single
-fixed rule. This rule encodes the complete transition table for the eight
+end, so evolution progresses downward over time. Note that these are arbitrary
+choices of convenience to support visualization over time, not essential
+properties of the abstract automaton. To better study the
+complexity-from-simplicity phenomenon, evolution is frequently driven by a
+single fixed rule. This rule encodes the complete transition table for the eight
 possible neighborhoods.
 
 To see why there are eight possible neighborhoods, let's consider adjacency in
@@ -48,8 +63,9 @@ one-dimensional space. We'll define the _distance_ between two cells $a$ and $b$
 in the natural way: as the number of cell borders that must be crossed in
 transit from $a$ to $b$. Further, we'll define the _neighborhood_ of some cell
 $a$ as comprising all cells whose distance from $a$ is less than or equal to
-one. For any cell $a$, that gives us $a$'s left neighbor, $a$ itself, and
-$a$'s right neighbor.
+one. For any cell $a$, that gives us $a$'s left neighbor, $a$ itself, and $a$'s
+right neighbor. It follows that each cell is considered three times — once as
+the center, once as the left neighbor, and once as the right neighbor.
 
 Now recall that each cell can express exactly two states, `on` and `off`. Taking
 state into account, there are a total of $2^3 = 8$ possible neighborhoods. Using
@@ -69,10 +85,10 @@ XXX (7)
 
 A rule dictates the outcome — `on` or `off` — for each cell as a consequence of
 its previous neighborhood state. Because there are eight possible neighborhoods,
-and each neighborhood can produce one of two resultant states, there are 
-$2^8 = 256$ possible rules. The result state of each neighborhood can be mapped
-to a single bit in an 8-bit number; this representational strategy is commonly 
-called _Wolfram coding_. In a Wolfram code, each bit, numbered `0` through `7`,
+and each neighborhood can produce one of two resultant states, there are $2^8 =
+256$ possible rules. The result state of each neighborhood can be mapped to a
+single bit in an 8-bit number; this representational strategy is commonly called
+_Wolfram coding_. In a _Wolfram code_, each bit, numbered `0` through `7`,
 corresponds to one of the eight possible neighborhoods illustrated above. The
 presence of a `1` in the $n^(th)$ bit means that neighborhood $n$ produces an
 `on` cell, whereas `0` at $n$ means that the neighborhood produces an `off`
@@ -131,15 +147,15 @@ Other rules produce evolutions with startling correspondences to other
 mathematical entities, like the Jacobsthal numbers and Pascal's triangle. And
 rules #110 and #124 are both capable of universal computation.
 
-Now that we know why elementary cellular automata are interesting, let's model
-them in Rust.
+Now that we know what elementary cellular automata are and why they might be
+interesting, let's model them in Rust.
 
 ## Modeling Elementary Cellular Automata with Rust
 
-That project that I developed to accompany this blog post is rooted [here](..).
-It's laid out in a pretty vanilla fashion, completely standard for a simple
-binary crate. When I present a code excerpt, I typically strip out any comments,
-but you can see all the original comments intact in the project on GitHub.
+There's [a&#32;project](..) based on this blog post. It's laid out in a pretty
+vanilla fashion, completely standard for a simple binary crate. When I present a
+code excerpt, I typically strip out any comments, but you can see all the
+original comments intact in the project on GitHub.
 
 The data model for the elementary cellular automaton is in
 [`src/automata.rs`](../src/automata.rs), so all the code excerpts in this
@@ -150,7 +166,8 @@ Let's look at the representation of an elementary cellular automaton first.
 ### `Automaton`, _const_ genericity, and conditional derivation
 
 Essentially, we keep our representational strategy super simple: we express an
-elementary cellular automaton as a boolean array, albeit with a few frills.
+elementary cellular automaton as a boolean array, albeit with a few elegant
+frills, like conditional derivation for testing.
 
 ```rust
 #[derive(Copy, Clone, Debug)]
@@ -193,12 +210,13 @@ to perform coordinate transformations to account for this.
 
 ### Succession and _const fn_
 
-The `next` method computes the next generation of an `Automaton`. There are
-three cases that `next` needs to handle:
+Now let's look at the `next` method that computes the next generation of an
+`Automaton`. There are three cases that `next` needs to handle:
 
 1. Computing the leading edge cell, i.e., the rightmost one, which requires
    treating the trailing edge cell, i.e., the leftmost one, as its right
-   neighbor.
+   neighbor. In other words, we visualize the automaton as a row, but we treat
+   it like a ring that wraps around at the ends.
 2. Computing the medial cells, which is trivial once we are properly oriented.
 3. Computing the trailing edge cell, which requires treating the leading edge
    cell as its left neighbor.
@@ -264,10 +282,10 @@ your compile-time vocabulary and thus improves the expressiveness of your
 _const_ and _static_ initializers.
 
 Right, back to `next`. Armed with the population ordinal, we can call the
-`next_cell` method to ask the supplied rule to produce the appropriate successor
-for the corresponding neighborhood. After that, it's simply a matter of
-clobbering the slots of the eponymous `next` array, then wrapping an `Automaton`
-around it before returning.
+`next_cell` method (shown below) to ask the supplied rule to produce the
+appropriate successor for the corresponding neighborhood. After that, it's
+simply a matter of clobbering the slots of the eponymous `next` array, then
+wrapping an `Automaton` around it before returning.
 
 ### Rules
 
@@ -278,6 +296,13 @@ pattern. This newtype wraps a Wolfram code, expressed as a `u8`.
 #[derive(Copy, Clone, Default, Debug, PartialEq, Eq, PartialOrd, Ord, Resource)]
 pub struct AutomatonRule(u8);
 ```
+
+> 🔮 `Resource` trait
+>
+> **Note:** We derive a bunch of standard Rust traits here, but `Resource` stands
+> out as something different. `Resource` is an derivable trait provided by
+> [Bevy](https://bevyengine.org/), denoting a type that can be used as a global
+> resource. More on this in the next blog post.
 
 Now we look at `next_cell`, which is completely straightforward:
 
@@ -292,14 +317,14 @@ impl AutomatonRule
 }
 ```
 
-The Wolfram code fully encapsulates the transition table for an elementary
-cellular automaton, so it's a simple matter of extracting the bit associated
-with a population ordinal. As expected, it's just a bit shift, a bitwise _and_,
-and a test against zero.
+Recall that the Wolfram code specifies the complete transition table for an
+elementary cellular automaton using only eight bits, so it's a simple matter of
+extracting the bit associated with a population ordinal. It's just a bit shift,
+a bitwise _and_, and a test against zero.
 
 ### Instantiating an `Automaton<K>`
 
-We need an ergonomic way to populate an `Automaton`:
+We need a clean way to populate an `Automaton`:
 
 ```rust
 impl<const K: usize> From<u64> for Automaton<K>
@@ -322,22 +347,24 @@ Pretty straightforward. There are only a couple tricks here.
 1. We need to traverse both the array and the `u64` in the same direction, i.e.,
    from least-significant cell to most-significant cell. For the array, this
    means indexing up from zero; for the `u64`, this means masking up from $2^0$
-   to $2^63$.
-2. The `assert!` macro call is, _prima facie_, a dynamic guard on the value of
-   the _const_ parameter `K`. `count_zeros` is a _const fn_, which we use to
-   obtain the number of bits in a `u64`. We could instead insert the literal
-   `64`, of course, but this technique clearly preserves the correlation between
-   the type and its bit length. Since `K` is a _const_ parameter and
-   `count_zeros` is a _const fn_ with a literal receiver (`0u64`), the whole
-   predicate is a _const_ expression, meaning that the compiler can optimize
-   away the runtime check whenever the _const_ expression evaluates to `true`.
-   In release mode, this ends up being a static guard after all!
+   to $2^(63)$.
+2. The `assert!` macro call is a dynamic guard on the value of the _const_
+   parameter `K`. `count_zeros` is a _const fn_, which we use to obtain the
+   number of bits in a `u64`. We could instead insert the literal `64`, of
+   course, but this technique clearly preserves the correlation between the type
+   and its bit length. Since `K` is a _const_ parameter and `count_zeros` is a
+   _const fn_ with a literal receiver (`0u64`), the whole predicate is a _const_
+   expression, meaning that the compiler can optimize away the runtime check
+   whenever the _const_ expression evaluates to `true`. In release mode, this
+   ends up being a static guard after all!
 
-Worth noting, _const_ implementation bounds, i.e., _const_ expressions in
-_const_ parameter positions, are available in nightly Rust, but not in stable
-Rust. With the nightly toolchain, we could use a conditional trait
-implementation on an unrelated helper type to statically guard against
-out-of-range values of `K` through emission of a compiler error.
+> ℹ️ _Const_ implementation bounds
+>
+> **Note:** _const_ implementation bounds, i.e., _const_ expressions in
+> _const_ parameter positions, are available in nightly Rust, but not in stable
+> Rust. With the nightly toolchain, we could use a conditional trait
+> implementation on an unrelated helper type to statically guard against
+> out-of-range values of `K` through emission of a compiler error.
 
 ```rust
 // Available in nightly only.
@@ -354,23 +381,23 @@ impl<const K: usize> From<u64> for Automaton<K> where Guard<{K <= 64}>: IsTrue
 }
 ```
 
-In this scenario, out-of-range `K` disables the implementation of
-`From<u64>` for `Automaton<K>`, so attempting `from` with, e.g., an
-`Automaton<90>`, causes the compiler to announce that the trait isn't
-implemented.
-
-But the `assert!` technique is the best we can do with stable Rust, and we use
-stable Rust through this project in order to maximize stability and
-availability.
+> In this scenario, out-of-range `K` disables the implementation of
+> `From<u64>` for `Automaton<K>`, so attempting `from` with, e.g., an
+> `Automaton<90>`, causes the compiler to announce that the trait isn't
+> implemented.
+>
+> But the `assert!` technique is the best we can do with stable Rust, and we use
+> stable Rust through this project in order to maximize stability and
+> availability.
 
 ### Testing the evolutionary mechanism
 
-Before moving on to Bevy, we should test whether all this works. We pick an
-arbitrary initial generation and rule, mechanically perform an evolution by
-hand, then rely on structural induction to conclude that the implementation is
-correct. Because we're free to pick anything we want, we pick initial generation
-`0x34244103` and rule #110. We also choose a shorter length automaton — 30 cells
-instead of 64 — for convenience. This scenario is
+Before moving on to [Bevy](https://bevyengine.org/), we should test whether all
+this works. We pick an arbitrary initial generation and rule, mechanically
+perform an evolution by hand, then rely on structural induction to conclude that
+the implementation is correct. Because we're free to pick anything we want, we
+pick initial generation `0x34244103` and rule #110. We also choose a shorter
+length automaton — 30 cells instead of 64 — for convenience. This scenario is
 [illustrated](https://commons.wikimedia.org/wiki/File:One-d-cellular-automaton-rule-110.gif#/media/File:One-d-cellular-automaton-rule-110.gif)
 on Wikipedia, so we can treat it as a community-checked test vector.
 
@@ -390,9 +417,6 @@ fn rule_110()
 	assert_eq!(expected, actual);
 }
 ```
-
-Our test suite includes a similar test for rule #30, just for safety, but I've
-omitted it here for brevity.
 
 ### Ring buffers and `impl Trait` syntax
 
@@ -501,14 +525,25 @@ impl<const K: usize, const N: usize> History<K, N>
 }
 ```
 
-And that's more or less everything we need from the model, so it's time to leave
-[`src/automata.rs`](../src/automata.rs) behind and turn our attention to the UI.
+That's everything we need from the model, so it's time to leave
+[`src/automata.rs`](../src/automata.rs) behind and turn our attention to the UI
+— in the next blog post in this series.
+
+# Cellular Automata: Part II
+
+In the first post of this three-part series, we described elementary cellular
+automata and modeled them in the [Rust](https://www.rust-lang.org/) programming
+language. In this post, the second of the three-part series, we describe the
+theory underlying entity-component-system (ECS) architecture, how the
+[Bevy](https://bevyengine.org/) game engine operationalizes this into practice,
+how to set up and streamline Bevy for cross-platform development, and how to
+build a static user interface using Bevy.
 
 ## Entity-component-system (ECS) architecture
 
 We started with theory, moved to practice, and now it's time for some more
-theory. Before we dive into using Bevy, let's first make a pit stop to learn
-about _entity-component-system_ (ECS) architecture.
+theory. Before we dive into using [Bevy](https://bevyengine.org/), let's first
+make a pit stop to learn about _entity-component-system_ (ECS) architecture.
 
 In ECS architecture, a discrete event simulator subjects numerous _entities_ to
 _systems_ that govern their lifecycles and mediate their interactions through
@@ -542,9 +577,10 @@ flexible ECS. It's relatively new, but it's also powerful and cross-platform,
 with support for 2D and 3D render pipelines, scene persistence, cascading style
 sheets (CSS), and hot reloading. Its build system permits fast recompilation, so
 you spend more time testing than waiting. It also integrates smoothly with
-numerous popular crates, like [Serde](https://crates.io/crates/serde) and
-[egui](https://crates.io/crates/egui). We're barely going to scratch the surface
-of what Bevy can do in this project.
+numerous popular crates, like [Serde](https://crates.io/crates/serde) (for
+serialization) and [egui](https://crates.io/crates/egui) (for building
+[immediate-mode&#32;graphic&#32;user&#32;interfaces](https://en.wikipedia.org/wiki/Immediate_mode_GUI)).
+We're barely going to scratch the surface of what Bevy can do in this project.
 
 Bevy's entities are
 [generational&#32;indices](https://lucassardois.medium.com/generational-indices-guide-8e3c5f7fd594).
@@ -560,8 +596,14 @@ with concrete examples.
 
 ### Setting up cross-platform Bevy
 
-Let's get Bevy wired up for both native and web development and deployment. In
-[`Cargo.toml`](../Cargo.toml), we add not one, but _two_ dependencies for Bevy.
+Let's get Bevy wired up for both native and web development and deployment.
+We'll go through it step-by-step, but if you need more instructions, you can
+check out the
+[official](https://bevyengine.org/learn/book/getting-started/setup/) or
+[unofficial](https://bevy-cheatbook.github.io/setup.html) Bevy setup tips.
+
+In [`Cargo.toml`](../Cargo.toml), we add not one, but _two_ dependencies for
+Bevy.
 
 ```toml
 [dependencies.bevy]
@@ -613,7 +655,9 @@ the linker supplied with [LLVM](https://llvm.org/). You don't have to get `lld`,
 but it's recommended for fastest link-time performance, which translates
 directly into less time waiting for builds to complete. If you don't have `lld`
 already and don't want to install it, you can just replace the paths to your
-preferred linker.
+preferred linker. If you do want to install `lld`, you can follow the
+[installation&#32;instructions](https://bevyengine.org/learn/book/getting-started/setup/)
+provided by Bevy.
 
 The `runner` key in the WASM section at the end specifies a Cargo plugin,
 [`wasm-server-runner`](https://github.com/jakobhellermann/wasm-server-runner),
@@ -744,9 +788,8 @@ native and web.
 
 ### Giving control to Bevy
 
-We've done bottom-up examination of the code so far, but now it's time to go top
-down. Let's see how `main` initializes Bevy and hands over control to its engine
-loop.
+We have the arguments now, so it's time to use them. Let's see how `main`
+initializes Bevy and hands over control to its engine loop.
 
 ```rust
 fn main()
@@ -785,9 +828,9 @@ reused across many projects.
 A _resource_ is a global singleton with a unique type. Systems access resources
 via dependency injection. We use `insert_resource` to register both the rule and
 the history, making them available for dependency injection into our systems.
-Anything that derives `Resource` can be used as a resource. If you were paying
-close attention, you may have noticed that `AutomatonRule` and `History` both
-derived `Resource` — and now you know why!
+Anything that derives `Resource` can be used as a resource. In the first blog
+post of the series, we derived `Resource` for both `AutomatonRule` and
+`History`, and now you know why!
 
 `AutomataPlugin` is the plugin that bundles together all of our other resources
 and systems. We attach it via `add_plugins`. Finally, we call `run` to hand
@@ -1295,7 +1338,8 @@ fn build_next_rule_banner(builder: &mut ChildBuilder)
 ```
 
 We attach a custom `NextRule` component instead of an `Instructions` component,
-but it serves the same purpose — to give this entity a systemic identity.
+but it serves the same purpose — to give this entity a systemic identity that is
+uniquely addressable within the application.
 
 ```rust
 #[derive(Component)]
@@ -1375,11 +1419,24 @@ fn build_fps_banner(builder: &mut ChildBuilder)
 		});
 }
 ```
+Sweet, we are done with building up the user interface. In the next and final
+part of this three-part blog series we will add dynamism — evolution and user
+interactivity.
 
-### The evolver
+# Cellular Automata: Part III
 
-Okay, we're done with setup! Now it's time for the exciting part: evolving the
-cellular automaton!
+In the second post of this three-part series, we explored
+entity-component-system (ECS) architecture and built a static user interface
+with [Bevy](https://bevyengine.org/). In this post, the finale of the three-part
+series, we implement the numerous systems that together drive evolution of our
+elementary cellular automaton and support user interaction via the keyboard and
+mouse.
+
+## The evolver
+
+We have the user interface now, but it's a tableau — a moment in time, locked on
+its initial presentation. Let's unlock it by fulfilling its raison d'être:
+evolution of the cellular automaton!
 
 ```rust
 fn evolve(
@@ -1558,7 +1615,7 @@ the side benefit of acting as an assertion. Speaking of assertions, we call
 `unreachable!` if the old `display` is `Grid`, because this should be impossible
 from the structure of our code.
 
-### Toggling cell state by mouse
+## Toggling cell state by mouse
 
 When the simulation is paused, we let the user toggle the cells at the bottom of
 the grid — the ones that represent the newest generation — by clicking on them.
@@ -1622,7 +1679,7 @@ Note that we never explicitly mention the specific device here, because
 device's. That technically makes this mechanism device-agnostic, even though the
 device will usually be a pointing device like a mouse or trackpad.
 
-### Buffering a new rule
+## Buffering a new rule
 
 In most mathematical exercises, a cellular automaton evolves according to a
 single fixed rule established at the onset. But it makes for a much more
@@ -1711,8 +1768,8 @@ meaning that this is the first digit that we've seen ever or since the last
 proposed new rule was accepted or rejected. If the buffer could possibly be
 valid after the new digit is appended, then push it and reset the timer to give
 the user a full quantum (600ms) to type the next digit. If the buffer would be
-_prima facie_ invalid after the push, i.e., because every valid parse would
-exceed the upper bound for a Wolfram code, then destroy the buffer and the timer
+ostensibly invalid after the push, i.e., because every valid parse would exceed
+the upper bound for a Wolfram code, then destroy the buffer and the timer
 immediately.
 
 ```rust
@@ -1886,7 +1943,7 @@ new rule from the buffered input. We have access to the lone `Window`, so we can
 update the title to reflect a new rule; by using our cross-platform `set_title`,
 we ensure that this works both on native and the web.
 
-### Reporting FPS
+## Reporting FPS
 
 Almost done! All that's left is to display the instantaneous frames per second
 while the user holds down the right shift key:
@@ -1934,11 +1991,20 @@ We extract the desired `Diagnostic` by id, which in this case is the aptly named
 (EWMA) for the diagnostic. We restrict the result to two decimal places and
 update the dynamic section of the text at index `1`.
 
-## Conclusion
+### Conclusion
 
-Well, as they say these days, _that was a lot_. We covered some math history,
-computer science, Rust programming, and elementary game development. Hopefully,
-this is the beginning of a journey, not the end; merely a whetting of your
-appetite to build awesomely with Rust. There are so many more topics and crates,
-and so much more to do with Bevy alone. Whether you reached the end of this long
-post or not, thanks for your time, and happy coding!
+Well, as they say these days, _that was a lot_. But I do believe that a
+demonstration is in order. We can hardly wrap up without seeing all of this in
+action, can we? Without further ado, let's turn on a single cell and watch
+[Rule&#32;#90](https://en.wikipedia.org/wiki/Rule_90) build a famous fractal:
+the
+[Sierpiński&#32;triangle](https://mathworld.wolfram.com/SierpinskiSieve.html)!
+
+[<img alt="Evolution of Rule #90" src="Rule%2090%20Evolution%20Thumbnail.png" width="100%"/>](Rule%2090%20Evolution.mp4 "Evolution of Rule #90")
+
+We covered some math history, computer science, Rust programming, and elementary
+game development. Hopefully, this is the beginning of a journey, not the end;
+merely a whetting of your appetite to build awesomely with Rust. There are so
+many more topics and crates, and so much more to do with Bevy alone. Whether you
+reached the end of this long post or not, thanks for your time, and happy
+coding!
