@@ -297,14 +297,12 @@ pattern. This newtype wraps a Wolfram code, expressed as a `u8`.
 pub struct AutomatonRule(u8);
 ```
 
-{% note %}
-
-**Note:** We derive a bunch of standard Rust traits here, but `Resource` stands
-out as something different. `Resource` is an derivable trait provided by
-[Bevy](https://bevyengine.org/), denoting a type that can be used as a global
-resource. More on this in the next blog post.
-
-{% endnote %}
+> 🔮 `Resource` trait
+>
+> **Note:** We derive a bunch of standard Rust traits here, but `Resource` stands
+> out as something different. `Resource` is an derivable trait provided by
+> [Bevy](https://bevyengine.org/), denoting a type that can be used as a global
+> resource. More on this in the next blog post.
 
 Now we look at `next_cell`, which is completely straightforward:
 
@@ -360,13 +358,13 @@ Pretty straightforward. There are only a couple tricks here.
    whenever the _const_ expression evaluates to `true`. In release mode, this
    ends up being a static guard after all!
 
-{% note %}
-
-**Note:** _const_ implementation bounds, i.e., _const_ expressions in
-_const_ parameter positions, are available in nightly Rust, but not in stable
-Rust. With the nightly toolchain, we could use a conditional trait
-implementation on an unrelated helper type to statically guard against
-out-of-range values of `K` through emission of a compiler error.
+> ℹ️ _Const_ implementation bounds
+>
+> **Note:** _const_ implementation bounds, i.e., _const_ expressions in
+> _const_ parameter positions, are available in nightly Rust, but not in stable
+> Rust. With the nightly toolchain, we could use a conditional trait
+> implementation on an unrelated helper type to statically guard against
+> out-of-range values of `K` through emission of a compiler error.
 
 ```rust
 // Available in nightly only.
@@ -383,16 +381,14 @@ impl<const K: usize> From<u64> for Automaton<K> where Guard<{K <= 64}>: IsTrue
 }
 ```
 
-In this scenario, out-of-range `K` disables the implementation of
-`From<u64>` for `Automaton<K>`, so attempting `from` with, e.g., an
-`Automaton<90>`, causes the compiler to announce that the trait isn't
-implemented.
-
-But the `assert!` technique is the best we can do with stable Rust, and we use
-stable Rust through this project in order to maximize stability and
-availability.
-
-{% endnote %}
+> In this scenario, out-of-range `K` disables the implementation of
+> `From<u64>` for `Automaton<K>`, so attempting `from` with, e.g., an
+> `Automaton<90>`, causes the compiler to announce that the trait isn't
+> implemented.
+>
+> But the `assert!` technique is the best we can do with stable Rust, and we use
+> stable Rust through this project in order to maximize stability and
+> availability.
 
 ### Testing the evolutionary mechanism
 
@@ -2004,7 +2000,7 @@ action, can we? Without further ado, let's turn on a single cell and watch
 the
 [Sierpiński&#32;triangle](https://mathworld.wolfram.com/SierpinskiSieve.html)!
 
-![Evolution&#32;of&#32;Rule&#32;#90](Rule%2090%20Evolution.mp4)
+![Evolution of Rule #90](Rule%2090%20Evolution.mp4)
 
 We covered some math history, computer science, Rust programming, and elementary
 game development. Hopefully, this is the beginning of a journey, not the end;
