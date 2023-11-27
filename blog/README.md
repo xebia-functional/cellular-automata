@@ -5,7 +5,9 @@ bring elementary cellular automata to life using the
 [Rust](https://www.rust-lang.org/) programming language and the
 [Bevy](https://bevyengine.org/) game engine. We'll learn a few things about
 cellular automata, Rust, entity-component-system architecture, and basic game
-development.
+development. You can experiment with the finished web app
+[online](https://47degrees.github.io/cellular-automata/); just give your browser
+a moment to download the app, and click the grid to give the app focus.
 
 A _cellular automaton_ comprises a regular grid of _cells_, each of which must
 express exactly one of a finite set of _states_. For each cell, it and its
@@ -300,7 +302,7 @@ pub struct AutomatonRule(u8);
 > 🔮 `Resource` trait
 >
 > **Note:** We derive a bunch of standard Rust traits here, but `Resource` stands
-> out as something different. `Resource` is an derivable trait provided by
+> out as something different. `Resource` is a derivable trait provided by
 > [Bevy](https://bevyengine.org/), denoting a type that can be used as a global
 > resource. More on this in the next blog post.
 
@@ -2001,6 +2003,11 @@ the
 [Sierpiński&#32;triangle](https://mathworld.wolfram.com/SierpinskiSieve.html)!
 
 [<img alt="Evolution of Rule #90" src="Rule%2090%20Evolution%20Thumbnail.png" width="100%"/>](Rule%2090%20Evolution.mp4 "Evolution of Rule #90")
+
+You can also experience this demonstration
+[interactively](https://47degrees.github.io/cellular-automata/?rule=90&seed=4294967296)
+if you prefer. You may need to click the grid to give the app focus before it
+will accept input from the keyboard or mouse.
 
 We covered some math history, computer science, Rust programming, and elementary
 game development. Hopefully, this is the beginning of a journey, not the end;
