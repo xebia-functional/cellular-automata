@@ -84,4 +84,4 @@ seed=<SEED>          The first generation, specified as a 64-bit integer that
 
 For example, the following URL illustrates running rule #206 on an initial
 population of one (at index 12, counting up from 0 on the right):
-https://47degrees.github.io/cellular-automata/?rule=206&seed=4096
+https://xebia-functional.github.io/cellular-automata/?rule=206&seed=4096
