@@ -19,7 +19,7 @@ with command line options).
 * Hold the right shift key to display the frames per second (FPS).
 
 To run the WASM build on GitHub Pages, go
-[here](https://47degrees.github.io/cellular-automata). Note that this is not
+[here](https://xebia-functional.github.io/cellular-automata/). Note that this is not
 expected to work on mobile, so use a desktop browser instead. Also, you will
 need to click the WASM canvas to transfer focus; key presses won't be detected
 before this.
